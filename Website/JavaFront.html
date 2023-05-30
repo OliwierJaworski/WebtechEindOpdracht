@@ -1,0 +1,70 @@
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+
+public class LiveDataVisualization {
+    public static void main(String[] args) {
+        // Establish a database connection
+        String jdbcUrl = "jdbc:mysql://localhost:3306/database_name";
+        String username = "username";
+        String password = "password";
+        try (Connection connection = DriverManager.getConnection(jdbcUrl, username, password)) {
+            // Retrieve data from the database
+            String query = "SELECT * FROM table_name";
+            try (Statement statement = connection.createStatement();
+                 ResultSet resultSet = statement.executeQuery(query)) {
+                // Create the DataTable object
+                com.google.visualization.datasource.datatable.DataTable dataTable =
+                        new com.google.visualization.datasource.datatable.DataTable();
+
+                // Add columns to the DataTable
+                dataTable.addColumn(new com.google.visualization.datasource.datatable.column.ValueColumnDescription("Category", com.google.visualization.datasource.datatable.value.ValueType.TEXT, "Category"));
+                dataTable.addColumn(new com.google.visualization.datasource.datatable.column.ValueColumnDescription("Value", com.google.visualization.datasource.datatable.value.ValueType.NUMBER, "Value"));
+
+                // Add data rows to the DataTable
+                while (resultSet.next()) {
+                    String category = resultSet.getString("category");
+                    int value = resultSet.getInt("value");
+                    dataTable.addRowFromValues(category, value);
+                }
+
+                // Generate the JSON representation of the DataTable
+                String jsonData = dataTable.toJson();
+
+                // Generate the HTML page
+                generateHtmlPage(jsonData);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private static void generateHtmlPage(String jsonData) {
+        try (PrintWriter writer = new PrintWriter("index.html")) {
+            writer.println("<html>");
+            writer.println("<head>");
+            writer.println("<script type=\"text/javascript\" src=\"https://www.gstatic.com/charts/loader.js\"></script>");
+            writer.println("<script type=\"text/javascript\">");
+            writer.println("google.charts.load('current', {packages:['corechart']});");
+            writer.println("google.charts.setOnLoadCallback(drawChart);");
+            writer.println("function drawChart() {");
+            writer.println("var data = new google.visualization.DataTable(" + jsonData + ");");
+            writer.println("var options = {title: 'Data Visualization'};");
+            writer.println("var chart = new google.visualization.LineChart(document.getElementById('chart_div'));");
+            writer.println("chart.draw(data, options);");
+            writer.println("}");
+            writer.println("</script>");
+            writer.println("</head>");
+            writer.println("<body>");
+            writer.println("<div id=\"chart_div\" style=\"width: 800px; height: 600px;\"></div>");
+            writer.println("</body>");
+            writer.println("</html>");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+}
