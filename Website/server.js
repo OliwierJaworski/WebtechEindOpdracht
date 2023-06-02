@@ -16,7 +16,7 @@ const pool = new Pool({
 app.use(express.json());
 
 app.get('/', (req, res) => {
-  res.send('Hello Node API Dit is Thibe');
+  res.send('Hello Node API Dit is Thibee');
 });
 
 app.get('/blog', (req, res) => {
